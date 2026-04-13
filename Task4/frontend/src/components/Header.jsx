@@ -4,7 +4,8 @@ import axios from "axios";
 
 function Header() {
   const navigate = useNavigate();
-  const loginUser = localStorage.getItem("loginUser");
+  const savedUser = localStorage.getItem("loginUser");
+  const loginUser = savedUser ? JSON.parse(savedUser) : null;
 
   const [cartCount, setCartCount] = useState(0);
   const [openModal, setOpenModal] = useState(false);
@@ -25,6 +26,7 @@ function Header() {
       setCartCount(totalQty);
     } catch (err) {
       console.log(err);
+      setCartCount(0);
     }
   };
 
@@ -90,6 +92,7 @@ function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("loginUser");
+    window.dispatchEvent(new Event("cartUpdated"));
     alert("Logout successful");
     navigate("/login");
   };
@@ -101,6 +104,15 @@ function Header() {
       return;
     }
     navigate("/products");
+  };
+
+  const handleCartClick = () => {
+    if (!loginUser) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+    navigate("/cart");
   };
 
   return (
@@ -127,7 +139,10 @@ function Header() {
               Add Item
             </button>
 
-            <button className="btn btn--nav cart-header-btn" onClick={() => navigate("/cart")}>
+            <button
+              className="btn btn--nav cart-header-btn"
+              onClick={handleCartClick}
+            >
               Cart <span className="cart-count-badge">{cartCount}</span>
             </button>
 
@@ -139,9 +154,18 @@ function Header() {
                 Login
               </button>
             ) : (
-              <button className="btn btn--danger" onClick={handleLogout}>
-                Logout
-              </button>
+              <>
+                <button
+                  className="btn btn--nav user-pill-btn"
+                  onClick={() => navigate("/profile")}
+                >
+                  {loginUser.name}
+                </button>
+
+                <button className="btn btn--danger" onClick={handleLogout}>
+                  Logout
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const {
   signup,
+  loginUser,
   findAll,
   findOne,
   findOneByQuery,
@@ -10,6 +11,7 @@ const {
   deleteData,
 } = require("../Controllers/userController");
 router.post("/sign", signup);
+router.post("/login",loginUser)
 router.get("/findusers", findAll);
 router.get("/findsingle/:id", findOne);
 router.get("/findOneByQuery", findOneByQuery);

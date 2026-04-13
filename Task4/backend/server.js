@@ -16,8 +16,10 @@ mongoose
 
 const productRouter = require("./Routes/productRoute");
 const cartRouter = require("./Routes/cartRoute");
+const userRouter = require("./Routes/userRoute");
 app.use("/product", productRouter);
 app.use("/cart", cartRouter);
+app.use("/user", userRouter);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

@@ -28,21 +28,7 @@ function Cart() {
   const handleIncrease = async (productId) => {
     try {
       await axios.put(`http://localhost:8080/cart/increase/${productId}`);
-
-      const updatedItems = [];
-      for (let i = 0; i < cartItems.length; i++) {
-        const item = cartItems[i];
-        if (item.productId === productId) {
-          updatedItems.push({
-            ...item,
-            quantity: item.quantity + 1,
-          });
-        } else {
-          updatedItems.push(item);
-        }
-      }
-
-      setCartItems(updatedItems);
+      await fetchCart();
       notifyCartUpdate();
     } catch (err) {
       console.log(err);
@@ -52,26 +38,7 @@ function Cart() {
   const handleDecrease = async (productId) => {
     try {
       await axios.put(`http://localhost:8080/cart/decrease/${productId}`);
-
-      const updatedItems = [];
-      for (let i = 0; i < cartItems.length; i++) {
-        const item = cartItems[i];
-
-        if (item.productId === productId) {
-          const newQty = item.quantity - 1;
-
-          if (newQty > 0) {
-            updatedItems.push({
-              ...item,
-              quantity: newQty,
-            });
-          }
-        } else {
-          updatedItems.push(item);
-        }
-      }
-
-      setCartItems(updatedItems);
+      await fetchCart();
       notifyCartUpdate();
     } catch (err) {
       console.log(err);
@@ -81,15 +48,7 @@ function Cart() {
   const handleRemove = async (productId) => {
     try {
       await axios.delete(`http://localhost:8080/cart/remove/${productId}`);
-
-      const updatedItems = [];
-      for (let i = 0; i < cartItems.length; i++) {
-        if (cartItems[i].productId !== productId) {
-          updatedItems.push(cartItems[i]);
-        }
-      }
-
-      setCartItems(updatedItems);
+      await fetchCart();
       notifyCartUpdate();
     } catch (err) {
       console.log(err);
@@ -100,8 +59,8 @@ function Cart() {
   let totalItems = 0;
 
   for (let i = 0; i < cartItems.length; i++) {
-    totalAmount = totalAmount + cartItems[i].price * cartItems[i].quantity;
-    totalItems = totalItems + cartItems[i].quantity;
+    totalAmount += cartItems[i].price * cartItems[i].quantity;
+    totalItems += cartItems[i].quantity;
   }
 
   return (
@@ -128,7 +87,7 @@ function Cart() {
 
                   <div className="cart-card-right">
                     <h4 className="cart-item-title">{item.title}</h4>
-                    <p className="cart-item-price">₹{item.price}</p>
+                    <p className="cart-item-price">${item.price}</p>
 
                     <div className="cart-qty-box">
                       <button
@@ -149,7 +108,7 @@ function Cart() {
                     </div>
 
                     <p className="cart-subtotal">
-                      Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
+                      Subtotal: ${(item.price * item.quantity).toFixed(2)}
                     </p>
 
                     <button
@@ -169,7 +128,7 @@ function Cart() {
                 Total Items: <strong>{totalItems}</strong>
               </p>
               <p>
-                Total Amount: <strong>₹{totalAmount.toFixed(2)}</strong>
+                Total Amount: <strong>${totalAmount.toFixed(2)}</strong>
               </p>
             </div>
           </>
