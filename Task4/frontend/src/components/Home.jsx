@@ -1,23 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { LazyLoadImage } from "react-lazy-load-image-component";
+import { useNavigate } from "react-router-dom";
 
 function Home({ products }) {
+  const navigate = useNavigate();
+
   const [apiProducts, setApiProducts] = useState(products || []);
   const [localProducts, setLocalProducts] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortPrice, setSortPrice] = useState("");
 
+  const removeAuthData = () => {
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("token");
+  };
+
   const fetchLocalCreatedProducts = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setLocalProducts([]);
+      return;
+    }
+
     try {
-      const res = await axios.get("http://localhost:8080/product/api/products");
+      const res = await axios.get(
+        "http://localhost:8080/product/api/products",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       const onlyUnsavedItems = res.data.filter(
         (item) => item.isSavedToDb === false,
       );
+
       setLocalProducts(onlyUnsavedItems);
     } catch (error) {
       console.log(error);
+      setLocalProducts([]);
     }
   };
 
@@ -83,22 +108,38 @@ function Home({ products }) {
   };
 
   const handleAddToDatabase = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const selectedProducts = allProducts.filter((item) =>
         selectedItems.includes(item.id),
       );
 
-      for (let item of selectedProducts) {
-        await axios.post("http://localhost:8080/product/api/products", {
-          id: item.id,
-          title: item.title,
-          price: item.price,
-          description: item.description,
-          category: item.category,
-          image: item.image,
-          rating: item.rating,
-          isSavedToDb: true,
-        });
+      for (let i = 0; i < selectedProducts.length; i++) {
+        await axios.post(
+          "http://localhost:8080/product/api/products",
+          {
+            id: selectedProducts[i].id,
+            title: selectedProducts[i].title,
+            price: selectedProducts[i].price,
+            description: selectedProducts[i].description,
+            category: selectedProducts[i].category,
+            image: selectedProducts[i].image,
+            rating: selectedProducts[i].rating,
+            isSavedToDb: true,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
       }
 
       alert("Selected items saved to database successfully");
@@ -109,7 +150,17 @@ function Home({ products }) {
       setSelectedItems([]);
     } catch (error) {
       console.log(error);
-      alert("Error while saving selected items");
+
+      if (error?.response?.status === 401) {
+        removeAuthData();
+        alert("Session expired, please login again");
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        error?.response?.data?.message || "Error while saving selected items",
+      );
     }
   };
 

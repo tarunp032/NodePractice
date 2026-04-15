@@ -10,9 +10,10 @@ const {
   updateData,
   deleteData,
 } = require("../Controllers/userController");
+const auth = require("../Middleware/auth")
 router.post("/sign", signup);
 router.post("/login",loginUser)
-router.get("/findusers", findAll);
+router.get("/findusers",auth, findAll);
 router.get("/findsingle/:id", findOne);
 router.get("/findOneByQuery", findOneByQuery);
 router.patch("/updateData", updateData);

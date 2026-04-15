@@ -10,12 +10,14 @@ const {
   deletePermanent,
 } = require("../Controllers/productController");
 
-router.post("/api/products", createProduct);
-router.get("/api/products", allProducts);
-router.get("/api/products/:id", oneProduct);
-router.put("/api/products/:id", updateProduct);
-router.put("/api/products/delete/:id", softDelete);
-router.put("/api/products/restore/:id", restoreProduct);
-router.delete("/api/products/permanent/:id", deletePermanent);
+const authMiddleware = require("../Middleware/authMiddleware");
+
+router.post("/api/products", authMiddleware, createProduct);
+router.get("/api/products", authMiddleware, allProducts);
+router.get("/api/products/:id", authMiddleware, oneProduct);
+router.put("/api/products/:id", authMiddleware, updateProduct);
+router.put("/api/products/delete/:id", authMiddleware, softDelete);
+router.put("/api/products/restore/:id", authMiddleware, restoreProduct);
+router.delete("/api/products/permanent/:id", authMiddleware, deletePermanent);
 
 module.exports = router;

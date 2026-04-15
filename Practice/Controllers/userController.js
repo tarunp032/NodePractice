@@ -51,7 +51,7 @@ const loginUser = async (req, res) => {
         email,
       },
       secretKey,
-     /* { expiresIn: "1h" }, */
+     { expiresIn: "5m" }, 
     );
     console.log(`>>>>token`, token);
     return res.status(200).json({ message: "Login Successfully", token });

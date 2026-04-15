@@ -1,11 +1,22 @@
 const User = require("../Models/userModel");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const secretKey = "abcxyz1234";
 
 const signup = async (req, res) => {
   try {
-    const { name, email, age, password, phone, gender, city, address } = req.body;
+    const { name, email, age, password, phone, gender, city, address } =
+      req.body;
 
-    if (!name || !email || !password || !phone || !gender || !city || !address) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !phone ||
+      !gender ||
+      !city ||
+      !address
+    ) {
       return res.status(400).json({
         success: false,
         message: "Please fill all required fields",
@@ -87,9 +98,18 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const token = jwt.sign(
+      {
+        email: oldUser.email,
+      },
+      secretKey,
+      { expiresIn: "2h" },
+    );
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
+      token: token,
       user: {
         _id: oldUser._id,
         name: oldUser.name,
@@ -114,6 +134,13 @@ const loginUser = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can access only your own profile",
+      });
+    }
 
     const foundUser = await User.findById(userId).select("-password");
 
@@ -190,6 +217,13 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Email, old password and new password are required",
+      });
+    }
+
+    if (req.user.email !== email.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can reset only your own password",
       });
     }
 

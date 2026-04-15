@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { LazyLoadImage } from "react-lazy-load-image-component";
+import { useNavigate } from "react-router-dom";
 
 function Product() {
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState([]);
   const [detailModal, setDetailModal] = useState(false);
   const [updateModal, setUpdateModal] = useState(false);
@@ -25,13 +28,32 @@ function Product() {
     count: "",
   });
 
+  const removeAuthData = () => {
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("token");
+  };
+
   const fetchCartItems = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await axios.get("http://localhost:8080/cart");
-      const mappedCart = {};
-      res.data.forEach((item) => {
-        mappedCart[item.productId] = item.quantity;
+      const res = await axios.get("http://localhost:8080/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
+      const mappedCart = {};
+      for (let i = 0; i < res.data.length; i++) {
+        mappedCart[res.data[i].productId] = res.data[i].quantity;
+      }
+
       setCartMap(mappedCart);
     } catch (error) {
       console.log(error);
@@ -44,29 +66,69 @@ function Product() {
   };
 
   const fetchAllProducts = async (showLoader = true) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      if (showLoader) setLoading(true);
+      if (showLoader) {
+        setLoading(true);
+      }
 
       const res = await axios.get(
-        "http://localhost:8080/product/api/products?saved=true"
+        "http://localhost:8080/product/api/products?saved=true",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       setProducts(res.data);
     } catch (error) {
       console.log(error);
+
+      if (error?.response?.status === 401) {
+        removeAuthData();
+        alert("Session expired, please login again");
+        navigate("/login");
+        return;
+      }
+
       setProducts([]);
     } finally {
-      if (showLoader) setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
   const fetchSearchedProducts = async (searchValue, showLoader = true) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      if (showLoader) setLoading(true);
+      if (showLoader) {
+        setLoading(true);
+      }
 
       if (!searchValue.trim()) {
         const res = await axios.get(
-          "http://localhost:8080/product/api/products?saved=true"
+          "http://localhost:8080/product/api/products?saved=true",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
         setProducts(res.data);
         return;
@@ -74,8 +136,13 @@ function Product() {
 
       const res = await axios.get(
         `http://localhost:8080/product/api/products?saved=true&search=${encodeURIComponent(
-          searchValue
-        )}`
+          searchValue,
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       setProducts(res.data);
@@ -83,7 +150,9 @@ function Product() {
       console.log(error);
       setProducts([]);
     } finally {
-      if (showLoader) setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
@@ -129,8 +198,23 @@ function Product() {
   }, [products, sortPrice]);
 
   const handleViewDetails = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await axios.get(`http://localhost:8080/product/api/products/${id}`);
+      const res = await axios.get(
+        `http://localhost:8080/product/api/products/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       setSelectedProduct(res.data);
       setDetailModal(true);
     } catch (error) {
@@ -139,8 +223,24 @@ function Product() {
   };
 
   const handleOpenUpdate = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await axios.get(`http://localhost:8080/product/api/products/${id}`);
+      const res = await axios.get(
+        `http://localhost:8080/product/api/products/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       const product = res.data;
 
       if (product.status !== "active") {
@@ -175,6 +275,14 @@ function Product() {
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
 
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     if (selectedProduct?.status !== "active") {
       alert("Inactive product cannot be updated");
       return;
@@ -193,7 +301,12 @@ function Product() {
             rate: Number(updateData.rate),
             count: Number(updateData.count),
           },
-        }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       setProducts((prev) =>
@@ -211,8 +324,8 @@ function Product() {
                   count: Number(updateData.count),
                 },
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       alert("Product updated successfully");
@@ -224,13 +337,29 @@ function Product() {
   };
 
   const handleAddToCart = async (item) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.post("http://localhost:8080/cart/add", {
-        productId: item._id,
-        title: item.title,
-        price: item.price,
-        image: item.image,
-      });
+      await axios.post(
+        "http://localhost:8080/cart/add",
+        {
+          productId: item._id,
+          title: item.title,
+          price: item.price,
+          image: item.image,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       await fetchCartItems();
       notifyCartUpdate();
@@ -240,8 +369,24 @@ function Product() {
   };
 
   const handleIncreaseCart = async (productId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/cart/increase/${productId}`);
+      await axios.put(
+        `http://localhost:8080/cart/increase/${productId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       await fetchCartItems();
       notifyCartUpdate();
     } catch (err) {
@@ -250,8 +395,24 @@ function Product() {
   };
 
   const handleDecreaseCart = async (productId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/cart/decrease/${productId}`);
+      await axios.put(
+        `http://localhost:8080/cart/decrease/${productId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       await fetchCartItems();
       notifyCartUpdate();
     } catch (err) {
@@ -260,18 +421,34 @@ function Product() {
   };
 
   const handleBulkAddToCart = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const selectedProducts = products.filter((p) =>
-        selectedItems.includes(p._id)
+        selectedItems.includes(p._id),
       );
 
-      for (let item of selectedProducts) {
-        await axios.post("http://localhost:8080/cart/add", {
-          productId: item._id,
-          title: item.title,
-          price: item.price,
-          image: item.image,
-        });
+      for (let i = 0; i < selectedProducts.length; i++) {
+        await axios.post(
+          "http://localhost:8080/cart/add",
+          {
+            productId: selectedProducts[i]._id,
+            title: selectedProducts[i].title,
+            price: selectedProducts[i].price,
+            image: selectedProducts[i].image,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
       }
 
       await fetchCartItems();
@@ -283,18 +460,34 @@ function Product() {
   };
 
   const handleInactive = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/product/api/products/delete/${id}`);
+      await axios.put(
+        `http://localhost:8080/product/api/products/delete/${id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       setProducts((prev) =>
         prev.map((item) =>
-          item._id === id ? { ...item, status: "inactive" } : item
-        )
+          item._id === id ? { ...item, status: "inactive" } : item,
+        ),
       );
 
       if (selectedProduct?._id === id) {
         setSelectedProduct((prev) =>
-          prev ? { ...prev, status: "inactive" } : prev
+          prev ? { ...prev, status: "inactive" } : prev,
         );
       }
     } catch (error) {
@@ -303,18 +496,34 @@ function Product() {
   };
 
   const handleRestore = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/product/api/products/restore/${id}`);
+      await axios.put(
+        `http://localhost:8080/product/api/products/restore/${id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       setProducts((prev) =>
         prev.map((item) =>
-          item._id === id ? { ...item, status: "active" } : item
-        )
+          item._id === id ? { ...item, status: "active" } : item,
+        ),
       );
 
       if (selectedProduct?._id === id) {
         setSelectedProduct((prev) =>
-          prev ? { ...prev, status: "active" } : prev
+          prev ? { ...prev, status: "active" } : prev,
         );
       }
     } catch (error) {
@@ -323,9 +532,22 @@ function Product() {
   };
 
   const handlePermanentDelete = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       await axios.delete(
-        `http://localhost:8080/product/api/products/permanent/${id}`
+        `http://localhost:8080/product/api/products/permanent/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       setProducts((prev) => prev.filter((item) => item._id !== id));
@@ -361,19 +583,35 @@ function Product() {
   };
 
   const handleBulkSoftDelete = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const selectedIds = [...selectedItems];
 
-      for (let id of selectedIds) {
-        await axios.put(`http://localhost:8080/product/api/products/delete/${id}`);
+      for (let i = 0; i < selectedIds.length; i++) {
+        await axios.put(
+          `http://localhost:8080/product/api/products/delete/${selectedIds[i]}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
       }
 
       setProducts((prev) =>
         prev.map((item) =>
           selectedIds.includes(item._id)
             ? { ...item, status: "inactive" }
-            : item
-        )
+            : item,
+        ),
       );
 
       alert("Selected products soft deleted successfully");
@@ -385,17 +623,33 @@ function Product() {
   };
 
   const handleBulkRestore = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const selectedIds = [...selectedItems];
 
-      for (let id of selectedIds) {
-        await axios.put(`http://localhost:8080/product/api/products/restore/${id}`);
+      for (let i = 0; i < selectedIds.length; i++) {
+        await axios.put(
+          `http://localhost:8080/product/api/products/restore/${selectedIds[i]}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
       }
 
       setProducts((prev) =>
         prev.map((item) =>
-          selectedIds.includes(item._id) ? { ...item, status: "active" } : item
-        )
+          selectedIds.includes(item._id) ? { ...item, status: "active" } : item,
+        ),
       );
 
       alert("Selected products restored successfully");
@@ -407,17 +661,30 @@ function Product() {
   };
 
   const handleBulkPermanentDelete = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const selectedIds = [...selectedItems];
 
-      for (let id of selectedIds) {
+      for (let i = 0; i < selectedIds.length; i++) {
         await axios.delete(
-          `http://localhost:8080/product/api/products/permanent/${id}`
+          `http://localhost:8080/product/api/products/permanent/${selectedIds[i]}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
       }
 
       setProducts((prev) =>
-        prev.filter((item) => !selectedIds.includes(item._id))
+        prev.filter((item) => !selectedIds.includes(item._id)),
       );
 
       if (selectedProduct && selectedIds.includes(selectedProduct._id)) {
@@ -590,7 +857,9 @@ function Product() {
                     <strong>Category:</strong> {item.category}
                   </p>
 
-                  <p className="product-card__description">{item.description}</p>
+                  <p className="product-card__description">
+                    {item.description}
+                  </p>
 
                   <p className="product-card__rating">
                     <strong>Rating:</strong> {item?.rating?.rate ?? "N/A"} (

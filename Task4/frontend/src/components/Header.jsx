@@ -4,6 +4,7 @@ import axios from "axios";
 
 function Header() {
   const navigate = useNavigate();
+
   const savedUser = localStorage.getItem("loginUser");
   const loginUser = savedUser ? JSON.parse(savedUser) : null;
 
@@ -19,10 +20,32 @@ function Header() {
     count: "",
   });
 
+  const removeAuthData = () => {
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("token");
+  };
+
   const fetchCart = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setCartCount(0);
+      return;
+    }
+
     try {
-      const res = await axios.get("http://localhost:8080/cart");
-      const totalQty = res.data.reduce((sum, item) => sum + item.quantity, 0);
+      const res = await axios.get("http://localhost:8080/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      let totalQty = 0;
+
+      for (let i = 0; i < res.data.length; i++) {
+        totalQty = totalQty + res.data[i].quantity;
+      }
+
       setCartCount(totalQty);
     } catch (err) {
       console.log(err);
@@ -37,10 +60,16 @@ function Header() {
       fetchCart();
     };
 
+    const handleStorageChange = () => {
+      fetchCart();
+    };
+
     window.addEventListener("cartUpdated", handleCartUpdated);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdated);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -51,8 +80,28 @@ function Header() {
     }));
   };
 
+  const handleOpenAddModal = () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    setOpenModal(true);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
 
     const payload = {
       id: Date.now(),
@@ -71,7 +120,7 @@ function Header() {
     window.dispatchEvent(
       new CustomEvent("productAdded", {
         detail: payload,
-      })
+      }),
     );
 
     alert("Item added successfully");
@@ -91,28 +140,47 @@ function Header() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("loginUser");
+    removeAuthData();
+    setCartCount(0);
     window.dispatchEvent(new Event("cartUpdated"));
     alert("Logout successful");
     navigate("/login");
   };
 
   const handleProductClick = () => {
-    if (!loginUser) {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
       alert("Please login first");
       navigate("/login");
       return;
     }
+
     navigate("/products");
   };
 
   const handleCartClick = () => {
-    if (!loginUser) {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
       alert("Please login first");
       navigate("/login");
       return;
     }
+
     navigate("/cart");
+  };
+
+  const handleProfileClick = () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    navigate("/profile");
   };
 
   return (
@@ -132,10 +200,7 @@ function Header() {
               Products
             </button>
 
-            <button
-              className="btn btn--primary"
-              onClick={() => setOpenModal(true)}
-            >
+            <button className="btn btn--primary" onClick={handleOpenAddModal}>
               Add Item
             </button>
 
@@ -157,7 +222,7 @@ function Header() {
               <>
                 <button
                   className="btn btn--nav user-pill-btn"
-                  onClick={() => navigate("/profile")}
+                  onClick={handleProfileClick}
                 >
                   {loginUser.name}
                 </button>

@@ -25,9 +25,15 @@ function Login() {
     try {
       setLoading(true);
 
-      const res = await axios.post("http://localhost:8080/user/login", formData);
+      const res = await axios.post(
+        "http://localhost:8080/user/login",
+        formData,
+      );
 
       localStorage.setItem("loginUser", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
+
+      window.dispatchEvent(new Event("cartUpdated"));
 
       alert(res.data.message);
       navigate("/products");
@@ -76,7 +82,11 @@ function Login() {
             />
           </div>
 
-          <button className="btn btn--primary btn--full" type="submit" disabled={loading}>
+          <button
+            className="btn btn--primary btn--full"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>

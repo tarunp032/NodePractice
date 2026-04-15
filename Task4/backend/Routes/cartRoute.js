@@ -10,12 +10,13 @@ const {
   getCartSummary,
 } = require("../Controllers/cartController");
 
-router.get("/", getCartItems);
-router.get("/summary", getCartSummary);
+const authMiddleware = require("../Middleware/authMiddleware");
 
-router.post("/add", addToCart);
-router.put("/increase/:productId", increaseCartItem);
-router.put("/decrease/:productId", decreaseCartItem);
-router.delete("/remove/:productId", removeCartItem);
+router.get("/", authMiddleware, getCartItems);
+router.get("/summary", authMiddleware, getCartSummary);
+router.post("/add", authMiddleware, addToCart);
+router.put("/increase/:productId", authMiddleware, increaseCartItem);
+router.put("/decrease/:productId", authMiddleware, decreaseCartItem);
+router.delete("/remove/:productId", authMiddleware, removeCartItem);
 
 module.exports = router;

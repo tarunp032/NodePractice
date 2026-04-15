@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Profile() {
-  const loginUser = JSON.parse(localStorage.getItem("loginUser"));
+  const navigate = useNavigate();
+
+  const savedUser = localStorage.getItem("loginUser");
+  const loginUser = savedUser ? JSON.parse(savedUser) : null;
+
   const [userData, setUserData] = useState(null);
 
   const [openForgotModal, setOpenForgotModal] = useState(false);
@@ -20,21 +25,53 @@ function Profile() {
     newPassword: "",
   });
 
+  const removeAuthData = () => {
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("token");
+  };
+
   const fetchProfile = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await axios.get(`http://localhost:8080/user/profile/${loginUser?._id}`);
+      const res = await axios.get(
+        `http://localhost:8080/user/profile/${loginUser?._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       setUserData(res.data.user);
     } catch (error) {
       console.log(error);
-      alert("Failed to load profile");
+
+      if (error?.response?.status === 401) {
+        removeAuthData();
+        alert("Session expired, please login again");
+        navigate("/login");
+        return;
+      }
+
+      alert(error?.response?.data?.message || "Failed to load profile");
     }
   };
 
   useEffect(() => {
-    if (loginUser?._id) {
-      fetchProfile();
+    if (!loginUser?._id) {
+      navigate("/login");
+      return;
     }
-  }, [loginUser?._id]);
+
+    fetchProfile();
+  }, []);
 
   const handleForgotChange = (e) => {
     setForgotData((prev) => ({
@@ -56,7 +93,7 @@ function Profile() {
     try {
       const res = await axios.post(
         "http://localhost:8080/user/forgot-password",
-        forgotData
+        forgotData,
       );
 
       alert(res.data.message);
@@ -76,10 +113,23 @@ function Profile() {
   const handleResetSubmit = async (e) => {
     e.preventDefault();
 
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
       const res = await axios.post(
         "http://localhost:8080/user/reset-password",
-        resetData
+        resetData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       alert(res.data.message);
@@ -92,6 +142,14 @@ function Profile() {
       });
     } catch (error) {
       console.log(error);
+
+      if (error?.response?.status === 401) {
+        removeAuthData();
+        alert("Session expired, please login again");
+        navigate("/login");
+        return;
+      }
+
       alert(error?.response?.data?.message || "Reset password failed");
     }
   };
@@ -143,7 +201,9 @@ function Profile() {
 
             <div className="profile-info-box">
               <span className="profile-info-label">Age</span>
-              <span className="profile-info-value">{userData.age || "N/A"}</span>
+              <span className="profile-info-value">
+                {userData.age || "N/A"}
+              </span>
             </div>
 
             <div className="profile-info-box">

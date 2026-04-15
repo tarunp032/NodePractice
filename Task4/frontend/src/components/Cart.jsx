@@ -1,16 +1,43 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Cart() {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const removeAuthData = () => {
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("token");
+  };
+
   const fetchCart = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      const res = await axios.get("http://localhost:8080/cart");
+      const res = await axios.get("http://localhost:8080/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCartItems(res.data);
     } catch (err) {
       console.log(err);
+
+      if (err?.response?.status === 401) {
+        removeAuthData();
+        alert("Session expired, please login again");
+        navigate("/login");
+        return;
+      }
+
       setCartItems([]);
     } finally {
       setLoading(false);
@@ -26,8 +53,24 @@ function Cart() {
   };
 
   const handleIncrease = async (productId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/cart/increase/${productId}`);
+      await axios.put(
+        `http://localhost:8080/cart/increase/${productId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       await fetchCart();
       notifyCartUpdate();
     } catch (err) {
@@ -36,8 +79,24 @@ function Cart() {
   };
 
   const handleDecrease = async (productId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:8080/cart/decrease/${productId}`);
+      await axios.put(
+        `http://localhost:8080/cart/decrease/${productId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       await fetchCart();
       notifyCartUpdate();
     } catch (err) {
@@ -46,8 +105,20 @@ function Cart() {
   };
 
   const handleRemove = async (productId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first");
+      navigate("/login");
+      return;
+    }
+
     try {
-      await axios.delete(`http://localhost:8080/cart/remove/${productId}`);
+      await axios.delete(`http://localhost:8080/cart/remove/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       await fetchCart();
       notifyCartUpdate();
     } catch (err) {
