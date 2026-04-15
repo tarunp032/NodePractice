@@ -25,7 +25,7 @@ module.exports = async (req, res, next) => {
   const userDetail = await user.findOne({ email });
   console.log(`>>>userDetail`, userDetail);
 
-  if (!user) {
+  if (!userDetail``) {
     return res.status(401).json({ message: "User not found" });
   }
   req.user = userDetail;
